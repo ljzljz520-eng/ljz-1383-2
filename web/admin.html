@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>管理后台 · 工作室</title><style>
+body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft Yahei",sans-serif;background:#f6f7fb;color:#1f2330;font-size:13px}
+header{background:#171a26;color:#fff;padding:14px 24px;display:flex;gap:14px;align-items:center}
+header input{background:#262a3a;border:1px solid #3a3f55;color:#fff;border-radius:8px;padding:7px 10px}
+nav{background:#fff;border-bottom:1px solid #e5e7eb;padding:0 20px;display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:none;border:0;padding:13px 14px;cursor:pointer;color:#555;border-bottom:2px solid transparent}
+nav button.on{color:#4450c7;border-bottom-color:#4450c7;font-weight:600}
+.wrap{padding:20px 24px 80px} .panel{display:none} .panel.on{display:block}
+.box{background:#fff;border:1px solid #e7e9f0;border-radius:12px;padding:16px;margin-bottom:16px}
+h2{font-size:16px;margin:0 0 12px} h3{font-size:14px;margin:16px 0 8px}
+input,textarea,select{padding:8px 10px;border:1px solid #d3d7e2;border-radius:8px;font-size:13px;margin:2px 4px 2px 0}
+button.act{background:#4450c7;color:#fff;border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px}
+button.sec{background:#fff;border:1px solid #cfd4e2;border-radius:8px;padding:7px 11px;cursor:pointer;font-size:12px}
+button.danger{background:#b33838} button.ok{background:#1a7f4b}
+table{border-collapse:collapse;width:100%;font-size:12px} th,td{border-bottom:1px solid #eef0f5;padding:7px 8px;text-align:left;vertical-align:top}
+th{background:#fafbfe;color:#666;font-weight:600} pre{background:#f4f5f8;border-radius:8px;padding:9px;font-size:11px;overflow:auto;max-height:260px}
+.pill{display:inline-block;font-size:10px;border-radius:999px;padding:1px 8px;margin:1px}
+.yes{background:#e7f6ee;color:#1a7f4b}.no{background:#fdecec;color:#b33838}
+.rev{background:#fdf0e0;color:#a25b12}.pub{background:#eef0ff;color:#3b49b0}
+.muted{color:#888;font-size:11px}.row{margin:6px 0} details summary{cursor:pointer;color:#4450c7}
+</style></head><body>
+<header><b>🎨 工作室管理后台</b>
+ <input id="u" placeholder="用户名" value="admin" style="width:110px"/>
+ <input id="p" placeholder="密码" type="password" style="width:140px"/>
+ <button class="act" onclick="login()">登录</button><span id="who" class="muted" style="color:#aab"></span>
+ <button class="sec" onclick="seed()">一键生成演示数据</button></header>
+<nav id="nav">
+ <button data-t="works" class="on">作品/版本/授权</button>
+ <button data-t="projects">项目/冻结/修订</button>
+ <button data-t="schedule">档期排期</button>
+ <button data-t="trace">追溯与交付依赖</button>
+ <button data-t="commissions">收到的委托</button>
+ <button data-t="people">人员/客户令牌</button>
+</nav>
+<div class="wrap">
+<section id="panel-works" class="panel on">
+ <div class="box"><h2>新建作品</h2>
+  <input id="w-artist" placeholder="艺术家ID" style="width:90px"/>
+  <input id="w-title" placeholder="作品标题"/>
+  <input id="w-summary" placeholder="简介"/>
+  <label class="muted"><input type="checkbox" id="w-secret"/> 保密项目（永不进首页/搜索/分享卡）</label>
+  <label class="muted"><input type="checkbox" id="w-feat"/> 首页精选（仍需展示授权才生效）</label>
+  <button class="act" onclick="createWork()">创建</button></div>
+ <div id="works"></div>
+</section>
+<section id="panel-projects" class="panel">
+ <div class="box"><h2>新建项目</h2>
+  <input id="pj-artist" placeholder="艺术家ID" style="width:80px"/>
+  <input id="pj-client" placeholder="客户ID" style="width:80px"/>
+  <input id="pj-work" placeholder="作品ID(可选)" style="width:90px"/>
+  <input id="pj-title" placeholder="项目标题"/>
+  <select id="pj-mode"><option value="stage">逐阶段冻结</option><option value="package">整包冻结</option></select>
+  <input id="pj-price" type="number" placeholder="报价(分)" style="width:100px"/>
+  <input id="pj-rounds" type="number" placeholder="含修改次数" value="2" style="width:90px"/>
+  <input id="pj-due" type="datetime-local"/>
+  <button class="act" onclick="createProject()">创建</button></div>
+ <div id="projects"></div>
+</section>
+<section id="panel-schedule" class="panel">
+ <div class="box"><h2>申请档期占位</h2>
+  <input id="sl-start" type="datetime-local"/> <span class="muted">起</span>
+  <input id="sl-end" type="datetime-local"/> <span class="muted">止</span>
+  <input id="sl-ttl" type="number" placeholder="占位TTL小时(默认48)" style="width:160px"/>
+  <button class="act" onclick="createSlot()">占位</button></div>
+ <div id="slots"></div>
+</section>
+<section id="panel-trace" class="panel">
+ <div class="box"><h2>审批 / 交付依赖追溯</h2>
+  <input id="tr-project" placeholder="项目ID" style="width:90px"/>
+  <button class="act" onclick="loadTrace()">查看项目交付链</button>
+  <div id="trace"></div></div>
+ <div class="box"><h2>审计时间线</h2><button class="sec" onclick="loadAudit()">刷新</button><div id="audit"></div></div>
+</section>
+<section id="panel-commissions" class="panel"><div id="commissions"></div></section>
+<section id="panel-people" class="panel"><div id="people"></div></section>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+function api(method,url,body){return fetch(url,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||r.status);return d})}
+function esc(s){return String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('on'));
+ document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
+ b.classList.add('on');$('#panel-'+b.dataset.t).classList.add('on');
+ const f={works:loadWorks,projects:loadProjects,schedule:loadSlots,trace:()=>{},commissions:loadCommissions,people:loadPeople}[b.dataset.t];if(f)f();
+});
+async function login(){await api('POST','/api/auth/login',{username:$('#u').value,password:$('#p').value});$('#who').textContent=' 已登录';loadWorks()}
+const RIGHTS=['display','download','sublicense']; const RLABEL={display:'展示',download:'下载',sublicense:'再授权'};
+function grantRows(a){return RIGHTS.map(r=>{const d=a.scope_decisions;let cells=[];
+ for(const sc of ['public']){const x=d[sc]&&d[sc][r];
+  cells.push(x?`<span class="pill ${x.granted&&!x.revoked?'yes':'no'}">${x.granted?(x.revoked?'已撤回':'授权'):'拒绝'}</span> <button class="sec" onclick="revoke(${x.grant_id})">撤回</button>`:'<span class="muted">—</span>')}
+ return `<td>${RLABEL[r]} ${cells.join('')}</td>`}).join('')}
+async function loadWorks(){
+ const ws=await api('GET','/api/admin/works');
+ $('#works').innerHTML=ws.map(w=>`<div class="box"><h3>${esc(w.title)}
+   <span class="pill ${w.confidential?'no':'pub'}">${w.confidential?'保密':'公开候选'}</span>
+   <span class="pill ${w.featured?'rev':''}">${w.featured?'精选标记':''}</span>
+   <span class="muted">#${w.id}</span>
+   <button class="sec" onclick="toggleSecret(${w.id},${!w.confidential})">${w.confidential?'取消保密':'设为保密'}</button>
+   <button class="sec" onclick="toggleFeat(${w.id},${!w.featured})">${w.featured?'取消精选':'设为精选'}</button>
+   <button class="sec" onclick="addVersion(${w.id})">+ 新版本</button></h3>
+   ${w.versions.map(v=>`<details ${v.seq===w.versions.length?'open':''}><summary>v${v.seq} ${esc(v.label)} — 版本 #${v.id}
+     <button class="sec" onclick="event.stopPropagation();loadApprovals(${v.id})">审批记录/差异</button></summary>
+     <div id="ap-${v.id}"></div>
+     <table><tr><th>素材</th><th>公开展示</th><th>公开下载</th><th>公开再授权</th><th>授权操作</th></tr>
+     ${v.assets.map(a=>`<tr><td><b>${a.kind}</b> ${esc(a.filename)}<br><span class="muted">#${a.id} ${a.sha256.slice(0,10)}</span>${a.source_asset_id?' <span class="pill rev">派生自#'+a.source_asset_id+'</span>':''}</td>
+       <td>${a.public_rights.display?'<span class="pill yes">是</span>':'<span class="pill no">否</span>'}</td>
+       <td>${a.public_rights.download?'<span class="pill yes">是</span>':'<span class="pill no">否</span>'}</td>
+       <td>${a.public_rights.sublicense?'<span class="pill yes">是</span>':'<span class="pill no">否</span>'}</td>
+       <td>${RIGHTS.map(r=>`<button class="sec" onclick="setGrant(${a.id},'${r}',true)">授${RLABEL[r]}</button><button class="sec" onclick="setGrant(${a.id},'${r}',false)">拒${RLABEL[r]}</button>`).join('')}
+       <div class="muted">派生：<button class="sec" onclick="derive(${a.id},${v.id},'thumbnail')">缩略图</button><button class="sec" onclick="derive(${a.id},${v.id},'process')">过程图</button></div></td></tr>`).join('')}
+     </table></details>`).join('')}
+ </div>`).join('')||'<p class="muted">暂无作品</p>';
+}
+async function createWork(){await api('POST','/api/admin/works',{artist_id:+$('#w-artist').value,title:$('#w-title').value,summary:$('#w-summary').value,confidential:$('#w-secret').checked,featured:$('#w-feat').checked});loadWorks()}
+async function toggleSecret(id,v){await api('PATCH','/api/admin/works/'+id,{confidential:v});loadWorks()}
+async function toggleFeat(id,v){await api('PATCH','/api/admin/works/'+id,{featured:v});loadWorks()}
+async function addVersion(wid){const label=prompt('版本标签（如：v3 精修）');if(!label)return;await api('POST',`/api/admin/works/${wid}/versions`,{label});loadWorks()}
+async function setGrant(a,r,g){const scope=prompt('授权范围（public 或 client:客户ID）','public');if(!scope)return;await api('POST','/api/admin/grants',{asset_id:a,right:r,granted:g,scope});loadWorks()}
+async function revoke(g){await api('POST','/api/admin/grants/'+g+'/revoke',{});loadWorks()}
+async function derive(a,v,k){await api('POST','/api/admin/derivations',{source_asset_id:a,target_version_id:v,kind:k});
+ if(confirm('已入队，立即处理派生任务？（产出不继承授权）')){await api('POST','/api/admin/derivations/run?limit=10');loadWorks()}}
+async function loadApprovals(vid){const d=await api('GET','/api/admin/trace/works/'+vid+'/approvals');
+ $('#ap-'+vid).innerHTML=d.length?`<table><tr><th>批准</th><th>客户</th><th>快照</th><th>最新差异</th></tr>${d.map(a=>`<tr><td>#${a.id}<br>${a.approved_at.replace('T',' ').slice(0,16)}${a.superseded_at?'<br><span class="pill no">已被取代</span>':''}</td><td>${a.client_id}</td>
+ <td><details><pre>${esc(JSON.stringify(a.snapshot,null,1))}</pre></details></td>
+ <td>${a.drift.changed?'<span class="pill no">⚠️ 批准后已变更<br>最新文件≠批准对象</span>':'<span class="pill yes">一致</span>'}</td></tr>`).join('')}</table>`:'<p class="muted">尚无批准</p>'}
+// ------------------------------------------------------------- projects
+async function loadProjects(){
+ const ps=await api('GET','/api/admin/projects');
+ $('#projects').innerHTML=ps.map(p=>`<div class="box"><h3>${esc(p.title)} #${p.id}
+  <span class="pill ${p.frozen?'no':'yes'}">${p.frozen?'整包已冻结':'未冻结'}</span>
+  <span class="pill pub">${p.freeze_mode==='package'?'整包模式':'逐阶段'}</span>
+  <span class="muted">报价 ${p.price_cents} 分 · 修改 ${p.rounds_used}/${p.edit_rounds_included} · 截止 ${p.due_date?p.due_date.slice(0,16):'—'}</span></h3>
+  <div class="row"><input id="stg-${p.id}" placeholder="新阶段名" style="width:150px"/><input id="stgr-${p.id}" type="number" placeholder="该阶段含修改次数" style="width:130px"/><button class="sec" onclick="addStage(${p.id})">+ 阶段</button>
+   ${p.freeze_mode==='package'?`<button class="sec danger" onclick="freezeP(${p.id})">整包冻结</button>`:''}</div>
+  <table><tr><th>阶段</th><th>状态</th><th>修改</th><th>阶段截止</th><th>操作</th></tr>
+  ${p.stages.map(s=>`<tr><td>${esc(s.name)} #${s.id}</td><td><span class="pill ${s.status==='frozen'?'no':'yes'}">${s.status}</span></td><td>${s.rounds_used}/${s.rounds_included||'—'}</td><td>${s.stage_due?s.stage_due.slice(0,16):'—'}</td>
+   <td>${s.status!=='frozen'&&p.freeze_mode==='stage'?`<button class="sec danger" onclick="freezeS(${p.id},${s.id})">冻结此阶段</button>`:''}</td></tr>`).join('')}</table>
+  <div class="row"><input id="rv-${p.id}" placeholder="修改要求（客户）" style="width:280px"/>
+   <select id="rvs-${p.id}"><option value="">项目级</option>${p.stages.map(s=>`<option value="${s.id}">阶段：${esc(s.name)}</option>`).join('')}</select>
+   <button class="act" onclick="revise(${p.id})">提交修改申请（校验报价/次数/截止/冻结）</button>
+   <button class="sec" onclick="checkR(${p.id})">预检约束</button></div>
+  <div id="rvout-${p.id}"></div></div>`).join('')||'<p class="muted">暂无项目</p>';
+}
+async function createProject(){await api('POST','/api/admin/projects',{artist_id:+$('#pj-artist').value,client_id:+$('#pj-client').value,work_id:+$('#pj-work').value||null,title:$('#pj-title').value,freeze_mode:$('#pj-mode').value,price_cents:+$('#pj-price').value||0,edit_rounds_included:+$('#pj-rounds').value||0,due_date:$('#pj-due').value?new Date($('#pj-due').value).toISOString():null});loadProjects()}
+async function addStage(pid){await api('POST',`/api/admin/projects/${pid}/stages`,{name:$('#stg-'+pid).value,edit_rounds_included:+$('#stgr-'+pid).value||0});loadProjects()}
+async function freezeP(pid){await api('POST',`/api/admin/projects/${pid}/freeze`,{reason:prompt('冻结原因')||''});loadProjects()}
+async function freezeS(pid,sid){await api('POST',`/api/admin/projects/${pid}/stages/${sid}/freeze`,{reason:prompt('冻结原因')||''});loadProjects()}
+async function revise(pid){const stage_id=+$('#rvs-'+pid).value||null;
+ try{const d=await api('POST',`/api/admin/projects/${pid}/revisions`,{detail:$('#rv-'+pid).value,stage_id});
+  let html=`状态：<span class="pill ${d.status==='approved'?'yes':d.status==='rejected'?'no':'rev'}">${d.status}</span> <span class="muted">${esc(d.decision_reason)}</span>`;
+  if(d.status==='requested')html+=` <div class="row">追加报价 <input id="co-c-${pid}" type="number" value="10000" style="width:90px"> 追加次数 <input id="co-r-${pid}" type="number" value="1" style="width:60px"> 新截止 <input id="co-d-${pid}" type="datetime-local">
+   <button class="sec" onclick="openCO(${d.id},${pid})">开立变更单</button>
+   <button class="sec ok" onclick="applyCO(${d.id},${pid})">记录客户接受并执行</button></div>`;
+  $('#rvout-'+pid).innerHTML=html;loadProjects()}catch(e){alert('❌ '+e.message)}}
+async function checkR(pid){const sid=$('#rvs-'+pid).value;const d=await api('GET',`/api/admin/projects/${pid}/revision-check${sid?'?stage_id='+sid:''}`);$('#rvout-'+pid).innerHTML=`<pre>${esc(JSON.stringify(d,null,2))}</pre>`}
+async function openCO(rid,pid){await api('POST','/api/admin/change-orders',{revision_id:rid,extra_charge_cents:+$('#co-c-'+pid).value,extra_rounds:+$('#co-r-'+pid).value,new_due:$('#co-d-'+pid).value?new Date($('#co-d-'+pid).value).toISOString():null});alert('变更单已开立，待客户接受')}
+async function applyCO(rid,pid){await api('POST','/api/admin/change-orders/accept',{revision_id:rid,accepted:true});loadProjects()}
+// ------------------------------------------------------------- schedule
+async function loadSlots(){const ss=await api('GET','/api/admin/slots');
+ $('#slots').innerHTML=`<table><tr><th>ID</th><th>起</th><th>止</th><th>状态</th><th>占位失效</th><th>预约</th></tr>${ss.map(s=>`<tr><td>${s.id}</td><td>${s.starts_at.slice(0,16)}</td><td>${s.ends_at.slice(0,16)}</td>
+  <td><span class="pill ${s.status==='booked'?'yes':s.status==='expired'?'no':'rev'}">${s.status}</span></td><td>${s.hold_expires_at?s.hold_expires_at.slice(0,16):'—'}</td>
+  <td><input id="bk-${s.id}" placeholder="项目ID" style="width:70px"><button class="sec" onclick="book(${s.id})">预约</button></td></tr>`).join('')}</table>`}
+async function createSlot(){await api('POST','/api/admin/slots',{starts_at:new Date($('#sl-start').value).toISOString(),ends_at:new Date($('#sl-end').value).toISOString(),ttl_hours:+$('#sl-ttl').value||null});loadSlots()}
+async function book(id){try{await api('POST','/api/admin/slots/book',{slot_id:id,project_id:+$('#bk-'+id).value});loadSlots()}catch(e){alert('❌ '+e.message)}}
+// ------------------------------------------------------------- trace
+async function loadTrace(){const pid=$('#tr-project').value;const d=await api('GET','/api/admin/trace/projects/'+pid+'/delivery');
+ $('#trace').innerHTML=d.map(a=>`<div class="box">验收单 #${a.acceptance_id}
+  <span class="pill ${a.completed?'yes':'rev'}">${a.completed?'已完成':'未完成'}</span>
+  <span class="pill ${a.artist_confirmed?'yes':'no'}">作者${a.artist_confirmed?'✓':'—'}</span>
+  <span class="pill ${a.client_confirmed?'yes':'no'}">客户${a.client_confirmed?'✓':'—'}</span>
+  <table><tr><th>版本</th><th>素材</th><th>SHA256</th><th>被批准覆盖</th><th>已入封包</th></tr>
+  ${a.items.map(i=>`<tr><td>#${i.version_id}</td><td>${i.kind} #${i.asset_id}</td><td class="muted">${i.sha256.slice(0,12)}</td>
+   <td>${i.covered_by_approvals.length?'<span class="pill yes">批准 #'+i.covered_by_approvals.join(',#')+'</span>':'<span class="pill no">未被批准</span>'}</td>
+   <td>${i.in_sealed_packages.length?'<span class="pill yes">包 #'+i.in_sealed_packages.join(',#')+'</span>':'<span class="muted">—</span>'}</td></tr>`).join('')}</table>
+  ${a.packages.map(pk=>`<details><summary>交付包 #${pk.package_id} 封于 ${pk.sealed_at?pk.sealed_at.slice(0,16):''}</summary><pre>${esc(JSON.stringify(pk.items,null,1))}</pre></details>`).join('')}</div>`).join('')||'<p class="muted">无验收记录</p>'}
+async function loadAudit(){const d=await api('GET','/api/admin/audit?limit=200');$('#audit').innerHTML='<table><tr><th>时间</th><th>操作者</th><th>动作</th><th>对象</th><th>详情</th></tr>'+d.map(e=>`<tr><td class="muted">${e.at.slice(0,19).replace('T',' ')}</td><td>${esc(e.actor)}</td><td>${esc(e.action)}</td><td>${esc(e.entity)}${e.entity_id?'#'+e.entity_id:''}</td><td class="muted">${esc(e.detail)}</td></tr>`).join('')+'</table>'}
+// ------------------------------------------------------------- commissions/people
+async function loadCommissions(){const d=await api('GET','/api/admin/commissions?submitted=true');
+ $('#commissions').innerHTML=`<div class="box"><h2>已提交委托（用途 + 交付范围）</h2><table><tr><th>#</th><th>用途</th><th>交付范围</th><th>联系</th><th>预算</th><th>提交时间</th></tr>${d.map(c=>`<tr><td>${c.id}</td><td>${esc(c.intended_use)}</td><td>${esc(c.delivery_scope)}</td><td>${esc(c.contact)}</td><td>${c.budget_cents}</td><td class="muted">${c.submitted_at.slice(0,16)}</td></tr>`).join('')}</table><p class="muted">未提交草稿仅在各自浏览器可恢复，后台不枚举、不提供内容。</p></div>`}
+async function loadPeople(){
+ const [a,c]=await Promise.all([api('GET','/api/admin/artists'),api('GET','/api/admin/clients')]);
+ $('#people').innerHTML=`<div class="box"><h2>艺术家</h2>${a.map(x=>`<div>#${x.id} ${esc(x.name)} — ${esc(x.bio)}</div>`).join('')}
+  <h3>新建</h3><input id="na" placeholder="姓名"/><input id="nab" placeholder="简介"/><button class="act" onclick="mkArtist()">创建</button></div>
+  <div class="box"><h2>客户（含门户令牌 capability URL）</h2><table><tr><th>#</th><th>名称</th><th>令牌 / 门户链接</th></tr>${c.map(x=>`<tr><td>${x.id}</td><td>${esc(x.name)}</td><td class="muted">${x.access_token}<br><a href="client.html?token=${x.access_token}" target="_blank">打开客户门户 →</a></td></tr>`).join('')}</table>
+  <h3>新建客户</h3><input id="nc" placeholder="名称"/><input id="nce" placeholder="邮箱"/><button class="act" onclick="mkClient()">创建</button></div>`}
+async function mkArtist(){await api('POST','/api/admin/artists',{name:$('#na').value,bio:$('#nab').value});loadPeople()}
+async function mkClient(){const d=await api('POST','/api/admin/clients',{name:$('#nc').value,email:$('#nce').value});prompt('客户门户链接（请安全发送给客户）',location.origin+'/client.html?token='+d.access_token);loadPeople()}
+async function seed(){await api('POST','/api/admin/seed');alert('演示数据已生成');loadWorks();loadPeople()}
+</script></body></html>

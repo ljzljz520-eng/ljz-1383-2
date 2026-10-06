@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>发起委托 · 草稿自动保存</title><style>
+body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft Yahei",sans-serif;background:#fafaf7;color:#1f2330}
+header{padding:22px 32px;border-bottom:1px solid #e5e7eb;background:#fff}
+.wrap{max-width:680px;margin:30px auto;padding:0 20px 80px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:24px}
+label{display:block;font-size:13px;color:#444;margin:14px 0 6px}
+input,textarea{width:100%;padding:10px 12px;border:1px solid #d9dce3;border-radius:9px;font-size:14px;font-family:inherit}
+textarea{min-height:90px} button{margin-top:20px;background:#5b6ee1;color:#fff;border:0;border-radius:10px;padding:11px 20px;font-size:14px;cursor:pointer}
+.tip{font-size:12px;color:#6b7280;margin-top:12px} .ok{color:#1a7f4b} .err{color:#b33838}
+h1{font-size:18px} a{color:#5b6ee1}
+</style></head><body>
+<header><a href="index.html">← 返回</a>　<strong>委托入口</strong></header>
+<div class="wrap"><div class="card">
+  <h1>告诉我你的委托</h1>
+  <p class="tip">草稿只保存在当前浏览器（随机草稿令牌 + Cookie 双重校验），换浏览器或其他人无法恢复；用途与交付范围用于报价与授权界定。</p>
+  <label>用途（例如：童书封面 / 周边商品 / 品牌宣传）*</label>
+  <textarea id="use" placeholder="请描述图像的使用场景、地域、媒介、期限"></textarea>
+  <label>交付范围（例如：成稿源文件 / 展示授权 / 下载或再授权）*</label>
+  <textarea id="scope" placeholder="勾选你需要的权利与文件；展示权 ≠ 下载权 ≠ 再授权权"></textarea>
+  <label>联系方式</label><input id="contact" placeholder="邮箱 / 微信"/>
+  <label>预算（分，可选）</label><input id="budget" type="number" value="0"/>
+  <div><button onclick="save(false)">保存草稿</button>
+       <button style="background:#1f2330" onclick="save(true)">提交委托</button></div>
+  <p id="msg" class="tip"></p>
+</div></div>
+<script>
+const $=s=>document.querySelector(s);
+async function save(submit){
+  const payload={intended_use:$('#use').value,delivery_scope:$('#scope').value,
+    contact:$('#contact').value,budget_cents:Number($('#budget').value||0)};
+  const r=await fetch('/api/commission/drafts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d=await r.json();
+  if(submit){
+    const rs=await fetch('/api/commission/drafts/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft_token:d.draft_token})});
+    const dd=await rs.json();
+    $('#msg').className=rs.ok?'ok':'err';
+    $('#msg').textContent=rs.ok?'✅ '+dd.message:'❌ '+dd.detail;
+    if(rs.ok)$('#msg').className='ok';
+  }else{
+    $('#msg').className='ok';$('#msg').textContent='草稿已保存到本浏览器（令牌 '+d.draft_token.slice(0,8)+'…）';
+  }
+}
+// restore on load (same browser only)
+(async()=>{
+ const r=await fetch('/api/commission/drafts/restore?draft_token='+encodeURIComponent(new URLSearchParams(location.search).get('t')||''));
+ if(r.ok){const d=await r.json();$('#use').value=d.intended_use;$('#scope').value=d.delivery_scope;
+   $('#contact').value=d.contact;$('#budget').value=d.budget_cents;
+   $('#msg').textContent='已恢复本浏览器未提交的草稿。';}
+})();
+</script></body></html>
